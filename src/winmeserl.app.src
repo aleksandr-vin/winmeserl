@@ -1,0 +1,12 @@
+{application, winmeserl,
+ [
+  {description, "Port for listenning Windows messages"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { winmeserl_app, []}},
+  {env, []}
+ ]}.
