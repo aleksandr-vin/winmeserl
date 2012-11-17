@@ -17,11 +17,82 @@
 
 #define MYCLASSNAME _T("win_mesg_cons_gw")
 
+typedef __int8 uint8_t;
+typedef __int32 uint32_t;
+
+#define ERR_READ        10
+#define ERR_READ_HEADER 11
+#define ERR_PACKET_SIZE 12
+#define ERR_SIZE_UNSUPP 100
+
+static void write_packet(char *buf, int sz, FILE *fd)
+{
+  uint8_t hd[4];
+  hd[0] = (sz >> 24) & 0xff;
+  hd[1] = (sz >> 16) & 0xff;
+  hd[2] = (sz >> 8) & 0xff;
+  hd[3] = sz & 0xff;
+  fwrite(hd, 1, 4, fd);
+
+  fwrite(buf, 1, sz, fd);
+  fflush(fd);
+}
+
+static size_t read_bytes(uint8_t *buf, size_t max, FILE *fd)
+{
+  size_t n;
+  n = fread(buf, 1, max, fd);
+  if ((n == 0) && !feof(fd))
+    {
+      exit(ERR_READ);
+    }
+  return n;
+}
+
+static void read_packet(uint8_t *buf, size_t max, FILE *fd)
+{
+  size_t n, sz;
+  uint8_t hd[4];
+
+  n = read_bytes(hd, 4, fd);
+  if (n == 0 && feof(fd))
+    {
+      exit(EXIT_SUCCESS);
+    }
+  if (n != 4)
+    {
+      exit(ERR_READ_HEADER);
+    }
+  sz = (hd[0] << 24) + (hd[1] << 16) + (hd[2] << 8) + hd[3];
+  if (sz > max)
+    {
+      exit(ERR_PACKET_SIZE);
+    }
+  n = read_bytes(buf, sz, fd);
+  if (n != sz)
+    {
+      exit(ERR_READ);
+    }
+}
+
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+  LOG_DEBUG1("HWND size is: %d\n", sizeof(HWND));
+  LOG_DEBUG1("UINT size is: %d\n", sizeof(UINT));
+  LOG_DEBUG1("WPARAM size is: %d\n", sizeof(WPARAM));
+  LOG_DEBUG1("LPARAM size is: %d\n", sizeof(LPARAM));
+
+  if (sizeof(LPARAM) != 4 ||
+      sizeof(WPARAM) != 4 ||
+      sizeof(UINT) != 4 ||
+      sizeof(HWND) != 4)
+    {
+      exit(ERR_SIZE_UNSUPP);
+    }
+
   HWND hWnd = GetConsoleWindow();
   LOG_DEBUG1("GetConsoleWindow: %d\n", hWnd);
   LONG_PTR v;
@@ -149,6 +220,32 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
   return TRUE;
 }
 
+static uint8_t send_buffer[1024];
+
+inline
+void encode_uint32(uint8_t *p, size_t o, uint32_t v)
+{
+  p[0 + o] = (v >> 24) & 0xff;
+  p[1 + o] = (v >> 16) & 0xff;
+  p[2 + o] = (v >> 8) & 0xff;
+  p[3 + o] = v & 0xff;
+}
+
+void send_enode(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  uint8_t *p = send_buffer;
+
+  /* All sizes must be 4 bytes */
+  encode_uint32(p, 0, (uint32_t)hWnd);
+  encode_uint32(p, sizeof(HWND), message);
+  encode_uint32(p, sizeof(HWND) + sizeof(UINT), wParam);
+  encode_uint32(p, sizeof(HWND) + sizeof(UINT) + sizeof(WPARAM), lParam);
+
+  write_packet(send_buffer,
+               sizeof(HWND) + sizeof(UINT) + sizeof(WPARAM) + sizeof(LPARAM),
+               stdout);
+}
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -165,7 +262,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
   PAINTSTRUCT ps;
   HDC hdc;
 
-  LOG_DEBUG4("message, hwnd: %d, message: %d, wParam: %d, lParam: %d\n", hWnd, message, wParam, lParam);
+  LOG_DEBUG4("message, hwnd: \\x%08x, message: \\x%08x, wParam: \\x%08x, lParam: \\x%08x\n", hWnd, message, wParam, lParam);
+
+  send_enode(hWnd, message, wParam, lParam);
 
   switch (message)
   {
