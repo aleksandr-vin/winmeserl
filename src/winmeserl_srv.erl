@@ -108,8 +108,12 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info({Port, {exit_status, _Status}} = Info, #state{port = Port} = State) ->
     {stop, Info, State};
+handle_info({Port, {data, Data}}, #state{port = Port} = State) when is_binary(Data) andalso
+								    size(Data) =:= 16 ->
+    ?info("Windows message arrived: ~p", [Data]),
+    {noreply, State};
 handle_info(_Info, State) ->
-    ?info("handle_info: ~p", [_Info]),
+    ?warning("unknown message: ~p", [_Info]),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
