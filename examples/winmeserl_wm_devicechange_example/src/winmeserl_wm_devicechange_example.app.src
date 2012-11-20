@@ -1,0 +1,13 @@
+{application, winmeserl_wm_devicechange_example,
+ [
+  {description, "Example for WM_DEVICECHANGE handling with with winmeserl"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  winmeserl
+                 ]},
+  {mod, { winmeserl_wm_devicechange_example_app, []}},
+  {env, []}
+ ]}.
