@@ -3,18 +3,17 @@ winmeserl
 
 Erlang port for listenning Windows messages
 
-It is organized through the port, which is a Windows console app with
-hidden window and a WndProc receiving messages and resending them to
+It is organized through the **port**, which is a Windows console app with
+hidden window and a `WndProc` receiving messages and resending them to
 Erlang process.
 
 For now it works in **asynchronous** mode only: it continues receiving
 of new Windows messages after sending ones to Erlang process. Not
 waiting for the Erlang processes reply.
 
-Synchronous mode is issued for *TO-DO* see [issue
-\#3](https://github.com/aleksandr-vin/winmeserl/issues/3) and will
-allow: * receiving of data referenced by lParam's value pointer *
-generating replies for ex. to `WM_DEVICECHANGE` 'request-for-removal'
+Synchronous mode is issued for *TO-DO* see issue #3 and will allow:
+* receiving of data referenced by `lParam`'s value pointer
+* generating replies for ex. to `WM_DEVICECHANGE` *request-for-removal*
 messages.
 
 
@@ -22,10 +21,10 @@ Usage
 -----
 
 In brief: you write an **event handler** with `handle_event/2` of such pattern:
-```
+```erlang
 handle_event({HWnd, WinMsg, WParam, LParam}, State) ->
 ```
-and after adding your handler to `winmeserl_event` event manager you
+and after adding your handler to `winmeserl_event` ([see module](https://github.com/aleksandr-vin/winmeserl/blob/master/src/winmeserl_event.erl)) event manager you
 will get calls.
 
 
