@@ -11,7 +11,7 @@ For now it works in **asynchronous** mode only: it continues receiving
 of new Windows messages after sending ones to Erlang process. Not
 waiting for the Erlang processes reply.
 
-Synchronous mode is issued for *TO-DO* see issue #3 and will allow:
+Synchronous mode is issued for *TO-DO* see issue [\#3](https://github.com/aleksandr-vin/winmeserl/issues/3) and will allow:
 * receiving of data referenced by `lParam`'s value pointer
 * generating replies for ex. to `WM_DEVICECHANGE` *request-for-removal*
 messages.
