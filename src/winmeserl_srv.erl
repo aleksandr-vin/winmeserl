@@ -106,11 +106,18 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info({Port, {exit_status, _Status}} = Info, #state{port = Port} = State) ->
+handle_info({Port, {exit_status, _Status}} = Info,
+            #state{port = Port} = State) ->
     {stop, Info, State};
-handle_info({Port, {data, Data}}, #state{port = Port} = State) when is_binary(Data) andalso
-								    size(Data) =:= 16 ->
-    ?info("Windows message arrived: ~p", [Data]),
+handle_info({Port, {data, Data}},
+            #state{port = Port} = State) when is_binary(Data) andalso
+                                              size(Data) =:= 16 ->
+    <<HWnd:32/integer-unsigned-big,
+      WinMsg:32/integer-unsigned-big,
+      WParam:32/integer-unsigned-big,
+      LParam:32/integer-unsigned-big>> = Data,
+    ?debug("Windows message, hwnd: ~p, message: ~p, wparam: ~p, lparam: ~p",
+          [HWnd, WinMsg, WParam, LParam]),
     {noreply, State};
 handle_info(_Info, State) ->
     ?warning("unknown message: ~p", [_Info]),
