@@ -4,16 +4,16 @@
 #include <wincon.h>
 
 #define LOG_DEBUG(M) \
-  fprintf(stderr, "%s", M)
+  if (!quiet_mode) { fprintf(stderr, "%s", M); }
 
 #define LOG_DEBUG1(F,A1) \
-  fprintf(stderr, F, A1)
+  if (!quiet_mode) { fprintf(stderr, F, A1); }
 
 #define LOG_DEBUG4(F,A1,A2,A3,A4) \
-  fprintf(stderr, F, A1, A2, A3, A4)
+  if (!quiet_mode) { fprintf(stderr, F, A1, A2, A3, A4); }
 
 #define LOG_ERROR1(F,A1) \
-  fprintf(stderr, F, A1)
+  if (!quiet_mode) { fprintf(stderr, F, A1); }
 
 #define MYCLASSNAME _T("win_mesg_cons_gw")
 
@@ -23,7 +23,29 @@ typedef __int32 uint32_t;
 #define ERR_READ        10
 #define ERR_READ_HEADER 11
 #define ERR_PACKET_SIZE 12
+#define ERR_WRITE       13
 #define ERR_SIZE_UNSUPP 100
+
+
+BOOL quiet_mode = false;
+
+int get_opts(int argc, _TCHAR* argv[])
+{
+  int i;
+  for (i = 1; i < argc; ++i)
+  {
+    _TCHAR c = (argv[i])[1];
+    switch (c)
+    {
+    case 'q':
+      quiet_mode = true;
+      break;
+    }
+  }
+
+  return 0;
+}
+
 
 static void write_packet(char *buf, int sz, FILE *fd)
 {
@@ -32,9 +54,18 @@ static void write_packet(char *buf, int sz, FILE *fd)
   hd[1] = (sz >> 16) & 0xff;
   hd[2] = (sz >> 8) & 0xff;
   hd[3] = sz & 0xff;
-  fwrite(hd, 1, 4, fd);
+  if (4 != fwrite(hd, 1, 4, fd))
+  {
+    LOG_ERROR1("write failed: %d\n", GetLastError());
+    exit(ERR_WRITE);
+  }
 
-  fwrite(buf, 1, sz, fd);
+  if (sz != fwrite(buf, 1, sz, fd))
+  {
+    LOG_ERROR1("write failed: %d\n", GetLastError());
+    exit(ERR_WRITE);
+  }
+
   fflush(fd);
 }
 
@@ -75,11 +106,24 @@ static void read_packet(uint8_t *buf, size_t max, FILE *fd)
     }
 }
 
+#define TEST_P(P, S) \
+  LOG_DEBUG1(#P ": %d\n", P); \
+  LOG_DEBUG1("fclose: %d\n", fclose(S)); \
+  LOG_DEBUG1(#P ": %d\n", P) \
+
+int am_i_alive()
+{
+  // Let delegate proper exitting to write_packet/3
+  return 1;
+}
+
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+  get_opts(argc, argv);
+
   LOG_DEBUG1("HWND size is: %d\n", sizeof(HWND));
   LOG_DEBUG1("UINT size is: %d\n", sizeof(UINT));
   LOG_DEBUG1("WPARAM size is: %d\n", sizeof(WPARAM));
@@ -104,6 +148,8 @@ int _tmain(int argc, _TCHAR* argv[])
 }
 
 //////////////----------------
+
+
 
 #define MAX_LOADSTRING 100
 
@@ -137,7 +183,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 
   // Main message loop:
-  while (GetMessage(&msg, NULL, 0, 0))
+  while (GetMessage(&msg, NULL, 0, 0) && am_i_alive())
   {
     LOG_DEBUG("GetMessage returned\n");
     if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
