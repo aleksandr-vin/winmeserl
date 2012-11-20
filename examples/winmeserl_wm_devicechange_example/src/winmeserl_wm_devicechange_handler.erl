@@ -22,6 +22,11 @@
 
 -define(SERVER, winmeserl_event).
 
+-define(WM_DEVICECHANGE, 16#219).
+
+-define(DBT_DEVICEARRIVAL, 16#8000).
+-define(DBT_DEVICEREMOVECOMPLETE, 16#8004).
+
 -record(state, {}).
 
 %%%===================================================================
@@ -67,13 +72,14 @@ init([]) ->
 %%                          remove_handler
 %% @end
 %%--------------------------------------------------------------------
-handle_event({_HWnd, _WinMsg, _WParam, _LParam} = _Event, State) ->
-    ?info("Damn!! Windows message notification arrived: ~p", [_Event]),
+handle_event({_, ?WM_DEVICECHANGE, ?DBT_DEVICEREMOVECOMPLETE, _}, State) ->
+    ?info("DBT_DEVICEREMOVECOMPLETE WM_DEVICECHANGE event"),
+    {ok, State};
+handle_event({_, ?WM_DEVICECHANGE, ?DBT_DEVICEARRIVAL, _}, State) ->
+    ?info("DBT_DEVICEARRIVAL WM_DEVICECHANGE event"),
     {ok, State};
 handle_event(_Event, State) ->
-    ?warning("Unknown event: ~p, never mind...", [_Event]),
     {ok, State}.
-
 
 %%--------------------------------------------------------------------
 %% @private
