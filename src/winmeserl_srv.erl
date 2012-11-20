@@ -118,8 +118,14 @@ handle_info({Port, {data, Data}},
       LParam:32/integer-unsigned-big>> = Data,
     ?debug("Windows message, hwnd: ~p, message: ~p, wparam: ~p, lparam: ~p",
           [HWnd, WinMsg, WParam, LParam]),
-    ok = winmeserl_event:notify({HWnd, WinMsg, WParam, LParam}),
+    winmeserl_event:notify({HWnd, WinMsg, WParam, LParam}),
     {noreply, State};
+handle_info({Port, {data, <<>>}} = Info,
+            #state{port = Port} = State) ->
+    ?warning("empty data packet received and server will stop now "
+	     "(see issue #2 on github:"
+	     " https://github.com/aleksandr-vin/winmeserl/issues/2)"),
+    {stop, Info, State};
 handle_info(_Info, State) ->
     ?warning("unknown message: ~p", [_Info]),
     {noreply, State}.
