@@ -118,6 +118,7 @@ handle_info({Port, {data, Data}},
       LParam:32/integer-unsigned-big>> = Data,
     ?debug("Windows message, hwnd: ~p, message: ~p, wparam: ~p, lparam: ~p",
           [HWnd, WinMsg, WParam, LParam]),
+    ok = winmeserl_event:notify({HWnd, WinMsg, WParam, LParam}),
     {noreply, State};
 handle_info(_Info, State) ->
     ?warning("unknown message: ~p", [_Info]),
