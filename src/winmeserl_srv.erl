@@ -120,6 +120,12 @@ handle_info({Port, {data, Data}},
           [HWnd, WinMsg, WParam, LParam]),
     winmeserl_event:notify({HWnd, WinMsg, WParam, LParam}),
     {noreply, State};
+handle_info({Port, {data, <<"debug:",Msg/binary>>}}, #state{port = Port} = State) ->
+    ?debug("Port log: ~s", [Msg]),
+    {noreply, State};
+handle_info({Port, {data, <<"error:",Msg/binary>>}}, #state{port = Port} = State) ->
+    ?error("Port log: ~s", [Msg]),
+    {noreply, State};
 handle_info({Port, {data, <<>>}} = Info,
             #state{port = Port} = State) ->
     ?warning("empty data packet received and server will stop now "
