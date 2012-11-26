@@ -299,11 +299,12 @@ int get_ok_reply()
   return 0;
 }
 
+char *sb = "heartbeat";
+
 void heartbeat()
 {
   LOG_DEBUG("Heartbeat!");
-  static char *sb = "heartbeat!";
-  write_packet(sb, strlen(sb), stdout);
+  write_packet(sb, 9, stdout);
 
   if (sync_heartbeat_mode)
   {
@@ -392,7 +393,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     switch (msg.message)
     {
     case WM_TIMER:
-//      heartbeat();
+      heartbeat();
       break;
     }
 

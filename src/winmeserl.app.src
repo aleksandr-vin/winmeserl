@@ -8,5 +8,5 @@
                   stdlib
                  ]},
   {mod, { winmeserl_app, []}},
-  {env, [{port_cmd, "win_mesg_cons_gw.exe -l -b 20"}]}
+  {env, [{port_cmd, "win_mesg_cons_gw.exe -l -b 5 -s"}]}
  ]}.
