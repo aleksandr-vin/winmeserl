@@ -54,7 +54,8 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    HeartBeatTime = 10 * 1000, % ms
+    {ok, HeartBeatTimeSec} = application:get_env(?APPNAME, port_heartbeat_time),
+    HeartBeatTime = 1000 * HeartBeatTimeSec, % ms
     case code:priv_dir(?APPNAME) of
         {error, _} ->
             ?error("~w priv dir not found", [?APPNAME]),
