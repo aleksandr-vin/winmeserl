@@ -22,7 +22,7 @@
 
 -include("log.hrl").
 
--record(state, {port}).
+-record(state, {port, heartbeat_tref, heartbeat_time}).
 
 %%%===================================================================
 %%% API
@@ -54,6 +54,7 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
+    HeartBeatTime = 10 * 1000, % ms
     case code:priv_dir(?APPNAME) of
         {error, _} ->
             ?error("~w priv dir not found", [?APPNAME]),
@@ -62,7 +63,10 @@ init([]) ->
             {ok, Cmd} = application:get_env(?APPNAME, port_cmd),
             Port = open_port({spawn, filename:join([PrivDir, Cmd])},
                              [binary, {packet, 4}, exit_status]),
-            {ok, #state{port = Port}}
+            {ok, TRef} = timer:exit_after(HeartBeatTime, 'port-heartbeat'),
+            {ok, #state{port = Port,
+                        heartbeat_time = HeartBeatTime,
+                        heartbeat_tref = TRef}}
     end.
 
 %%--------------------------------------------------------------------
@@ -126,10 +130,20 @@ handle_info({Port, {data, <<"debug:",Msg/binary>>}}, #state{port = Port} = State
 handle_info({Port, {data, <<"error:",Msg/binary>>}}, #state{port = Port} = State) ->
     ?error("Port log: ~s", [Msg]),
     {noreply, State};
-handle_info({Port, {data, <<"heartbeat">>}}, #state{port = Port} = State) ->
+handle_info({Port, {data, <<"heartbeat">>}},
+            #state{port = Port, heartbeat_tref = OldTRef} = State) ->
     ?debug("Port heart beats!"),
+    {ok, _OldTimer} =
+        case OldTRef of
+            undefined = U ->
+                {ok, U};
+            _ ->
+                timer:cancel(State#state.heartbeat_tref)
+        end,
+    ?debug("Old timer result: ~p", [_OldTimer]),
+    {ok, TRef} = timer:exit_after(State#state.heartbeat_time, 'port-heartbeat'),
     port_command(Port, <<"ok">>),
-    {noreply, State};
+    {noreply, State#state{heartbeat_tref = TRef}};
 handle_info({Port, {data, <<>>}} = Info,
             #state{port = Port} = State) ->
     ?warning("empty data packet received and server will stop now "
